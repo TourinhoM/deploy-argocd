@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Projeto base para infra/plataforma (GitOps)
+  sourceRepos:
+    # TODO: restrinja para o(s) repo(s) que você realmente usa
+    - "*"
+  destinations:
+    # TODO: restrinja namespaces por ambiente
+    - namespace: "*"
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+# TODO (este arquivo):
+# - Trocar sourceRepos de "*" para o repo do GitOps e outros necessários
+# - Restringir destinos (namespaces permitidos)
+# - Se você quer bloquear Cluster-scoped, ajuste clusterResourceWhitelist
+

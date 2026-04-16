@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# TODO: escolher método de instalação do Argo CD.
+# - Opção A (recomendada): Helm chart (argo-cd) com values versionado.
+# - Opção B: manifests oficiais.
+#
+# Este kustomization está pronto para:
+# - criar namespace
+# - aplicar recursos complementares (ex.: ingress)
+#
+# Se você já instalou o Argo CD por Helm fora do GitOps, mantenha aqui apenas:
+# - namespace
+# - ingress
+# - configs (ConfigMap/RBAC/etc) conforme necessário.
+
+resources:
+  - namespace.yaml
+  - ingress.yaml
+
