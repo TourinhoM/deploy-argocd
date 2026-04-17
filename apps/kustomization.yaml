@@ -9,4 +9,5 @@ resources:
   - projects/platform.yaml
   - applications/infra-postgresql.yaml
   - applications/infra-keycloak.yaml
+  - applications/infra-ollama.yaml
 
