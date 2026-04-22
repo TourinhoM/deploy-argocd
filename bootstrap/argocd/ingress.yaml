@@ -12,7 +12,9 @@ metadata:
   name: argocd-server
   namespace: argocd
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    # Expor tanto em HTTP quanto HTTPS no Traefik.
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # Backend do Argo CD deve ser HTTP quando server.insecure=true.
     traefik.ingress.kubernetes.io/service.serversscheme: http
 spec:
   ingressClassName: traefik
