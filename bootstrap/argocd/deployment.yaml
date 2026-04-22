@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/part-of: argocd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argocd-server
+        app.kubernetes.io/part-of: argocd
+    spec:
+      containers:
+        - name: argocd-server
+          image: quay.io/argoproj/argocd:v2.11.7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          args:
+            - /usr/local/bin/argocd-server
+            - --insecure
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
