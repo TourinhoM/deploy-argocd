@@ -4,6 +4,8 @@ kind: Kustomization
 # Bootstrap padrão completo via manifests oficiais do Argo CD.
 # A versão está pinada para manter reprodutibilidade.
 
+namespace: argocd
+
 resources:
   - namespace.yaml
   - https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.7/manifests/install.yaml
