@@ -51,11 +51,14 @@ Na raiz do repositório:
 kubectl apply -k bootstrap/argocd
 ```
 
-Isso vai criar:
+Isso vai criar a stack padrão completa do Argo CD (manifests oficiais), incluindo:
 
 - `Namespace` `argocd`
-- `Deployment` `argocd-server`
-- `Service` `argocd-server`
+- `argocd-server`
+- `argocd-repo-server`
+- `argocd-application-controller`
+- `argocd-redis`
+- RBAC, ConfigMaps, Secrets e Services padrão
 - `Ingress` `argocd-server` (Traefik)
 
 Valide:
@@ -63,6 +66,7 @@ Valide:
 ```bash
 kubectl -n argocd get all
 kubectl -n argocd get ingress
+kubectl -n argocd get pods
 ```
 
 ## 5) Acesso ao Argo CD
@@ -70,12 +74,12 @@ kubectl -n argocd get ingress
 Opção rápida com port-forward:
 
 ```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:80
+kubectl -n argocd port-forward svc/argocd-server 8080:443
 ```
 
 Abra:
 
-- http://localhost:8080
+- https://localhost:8080
 
 Se quiser acessar via Ingress, ajuste `bootstrap/argocd/ingress.yaml` com host/TLS e DNS.
 
@@ -124,4 +128,4 @@ Se o Ingress não responder:
 
 ## Observação importante
 
-Este bootstrap atual sobe apenas o `argocd-server` (mínimo). Para produção, normalmente você vai querer instalar a stack completa do Argo CD (controller, repo-server, redis, RBAC e configurações), preferencialmente via Helm.
+Este bootstrap usa os manifests oficiais completos do Argo CD. Se você preferir customização avançada de valores, pode migrar para instalação via Helm chart (`argo-cd`) mantendo a versão pinada.
