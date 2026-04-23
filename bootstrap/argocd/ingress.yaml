@@ -24,7 +24,8 @@ spec:
       secretName: keycloak-tls
 
   rules:
-    - http:
+    - host: argocd.local
+      http:
         paths:
           - path: /
             pathType: Prefix
