@@ -29,6 +29,9 @@ spec:
               - secretName: keycloak-tls
                 hosts:
                   - prometheus.local
+        prometheus-node-exporter:
+          hostRootFsMount:
+            enabled: false
 
   destination:
     server: https://kubernetes.default.svc
