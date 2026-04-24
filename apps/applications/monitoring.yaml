@@ -30,6 +30,7 @@ spec:
                 hosts:
                   - prometheus.local
         prometheus-node-exporter:
+          enabled: true
           hostRootFsMount:
             enabled: false
 
