@@ -11,4 +11,5 @@ resources:
   - applications/infra-postgresql.yaml
   - applications/infra-keycloak.yaml
   - applications/infra-ollama.yaml
+  - applications/monitoring.yaml
 
