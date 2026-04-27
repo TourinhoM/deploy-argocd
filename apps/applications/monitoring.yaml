@@ -18,17 +18,21 @@ spec:
             replicas: 1
         grafana:
           enabled: true
+
           ingress:
             enabled: true
             ingressClassName: traefik
+
             annotations:
               traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+
             hosts:
               - grafana.local
+
             tls:
-              - secretName: keycloak-tls
-                hosts:
+              - hosts:
                   - grafana.local
+                secretName: keycloak-tls
         prometheus:
           service:
             type: ClusterIP
