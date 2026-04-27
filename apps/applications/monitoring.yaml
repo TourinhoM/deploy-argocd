@@ -12,6 +12,10 @@ spec:
     targetRevision: 58.0.0
     helm:
       values: |
+        alertmanager:
+          enabled: true
+          alertmanagerSpec:
+            replicas: 1
         grafana:
           enabled: true
         prometheus:
@@ -44,3 +48,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
