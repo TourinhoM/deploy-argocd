@@ -11,7 +11,7 @@ spec:
     path: overlays/lab
   destination:
     server: https://kubernetes.default.svc
-    namespace: infra
+    namespace: keycloak
   syncPolicy:
     automated:
       prune: true
