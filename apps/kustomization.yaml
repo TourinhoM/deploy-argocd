@@ -12,4 +12,5 @@ resources:
   - applications/infra-keycloak.yaml
   - applications/infra-ollama.yaml
   - applications/monitoring.yaml
+  - applications/monitoring-dashboards.yaml
 
