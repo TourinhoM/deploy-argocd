@@ -16,8 +16,21 @@ spec:
           enabled: true
           alertmanagerSpec:
             replicas: 1
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 1Gi
         grafana:
           enabled: true
+
+          persistence:
+            enabled: true
+            type: pvc
+            accessModes: ["ReadWriteOnce"]
+            size: 2Gi
 
           ingress:
             enabled: true
@@ -48,6 +61,15 @@ spec:
               - secretName: keycloak-tls
                 hosts:
                   - prometheus.local
+          prometheusSpec:
+            retention: 7d
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 5Gi
         prometheus-node-exporter:
           enabled: true
           hostRootFsMount:
