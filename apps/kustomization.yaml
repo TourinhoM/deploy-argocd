@@ -9,6 +9,7 @@ resources:
   - projects/platform.yaml
   - applications/argocd-self.yaml
   - applications/external-secrets.yaml
+  - applications/external-secrets-config.yaml
   - applications/infra-postgresql.yaml
   - applications/infra-keycloak.yaml
   - applications/infra-ollama.yaml
