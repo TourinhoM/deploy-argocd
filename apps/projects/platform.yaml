@@ -6,18 +6,23 @@ metadata:
 spec:
   description: Projeto base para infra/plataforma (GitOps)
   sourceRepos:
-    # TODO: restrinja para o(s) repo(s) que você realmente usa
-    - "*"
+    - https://github.com/TourinhoM/deploy-keycloak.git
+    - https://github.com/TourinhoM/deploy-prostgresql.git
+    - https://github.com/TourinhoM/deploy-llm-runtime.git
   destinations:
-    # TODO: restrinja namespaces por ambiente
-    - namespace: "*"
+    - namespace: keycloak
+      server: https://kubernetes.default.svc
+    - namespace: infra
+      server: https://kubernetes.default.svc
+    - namespace: ai
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"
       kind: "*"
 
-# TODO (este arquivo):
-# - Trocar sourceRepos de "*" para o repo do GitOps e outros necessários
-# - Restringir destinos (namespaces permitidos)
-# - Se você quer bloquear Cluster-scoped, ajuste clusterResourceWhitelist
+# TODO:
+# - Quando ativar o ApplicationSet `infra` (hoje com CHANGE_ME_REPO_URL),
+#   adicionar o repoURL real em sourceRepos.
+# - Avaliar separar default-project apps (argocd-self, monitoring, monitoring-dashboards)
+#   em AppProjects dedicados (`system`, `monitoring`).
 
