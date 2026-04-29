@@ -22,6 +22,36 @@ kubectl apply -k bootstrap/argocd
 kubectl apply -f bootstrap/root-app/application.yaml
 ```
 
+## External Secrets Operator + Bitwarden — bootstrap manual
+
+A `Application` `external-secrets` instala o ESO + sidecar `bitwarden-sdk-server`
+e a `external-secrets-config` cria o `ClusterSecretStore` `bitwarden-homelab`.
+Dois segredos precisam ser criados **fora do Git** (chicken-and-egg):
+
+1. **Access token** do machine account no Bitwarden Secrets Manager:
+
+   ```bash
+   sudo k3s kubectl -n external-secrets create secret generic bitwarden-access-token \
+     --from-literal=token='<COLE_O_ACCESS_TOKEN>'
+   ```
+
+2. **Certificado TLS self-signed** para o `bitwarden-sdk-server`:
+
+   ```bash
+   bash scripts/bootstrap-bitwarden-sdk-tls.sh
+   ```
+
+   O script gera um cert válido por 10 anos com SAN cobrindo o DNS interno
+   `bitwarden-sdk-server.external-secrets.svc.cluster.local` e cria/atualiza o
+   Secret `bitwarden-tls-certs` (chaves: `tls.crt`, `tls.key`, `ca.crt`).
+
+Validar:
+
+```bash
+sudo k3s kubectl get clustersecretstore bitwarden-homelab \
+  -o jsonpath='{.status.conditions}'   # type=Ready, status=True
+```
+
 ## Plano: o que fazer em cada arquivo
 
 ### `bootstrap/argocd/kustomization.yaml`
