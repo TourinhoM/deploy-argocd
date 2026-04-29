@@ -15,18 +15,67 @@ Repositório GitOps para gerenciar **Argo CD** e os **workloads** do cluster via
 2. Aplicar uma vez o root app: `bootstrap/root-app/application.yaml`
 3. A partir daí, o Argo CD reconcilia `apps/` e tudo que eles apontarem em `envs/`
 
-## Como aplicar (primeiro bootstrap)
+## Pré-requisito: setup no Bitwarden Secrets Manager
+
+Antes de rodar o onboarding, prepare a conta do Bitwarden. Tudo é feito no
+[Web Vault](https://vault.bitwarden.com/) (plano free serve).
+
+1. **Organization** — em *Settings → New organization*, cria (ou usa uma existente).
+2. **Habilitar Secrets Manager** — no menu lateral, abre *Secrets Manager*. Na
+   primeira vez, ativa para essa organization.
+3. **Project** — em *Secrets Manager → Projects*, cria o project (lab usa `homelab`).
+4. **Secrets** — em *Secrets*, cria com estes nomes (associando ao project `homelab`):
+   - `postgres-superuser-password`
+   - `keycloak-admin-password`
+5. **Machine account** — em *Machine accounts → New*, cria um (ex.: `eso-homelab`).
+   Em *Projects*, dá acesso de leitura ao `homelab`. Em *Access tokens → New*,
+   gera um token, **copia agora** (não dá pra ver de novo).
+6. **IDs** — copia o `organizationID` (UUID na URL ou em *Settings*) e o
+   `projectID` (URL do project). Edita
+   `cluster-config/external-secrets/clustersecretstore-bitwarden-homelab.yaml`
+   trocando `organizationID` e `projectID` pelos seus.
+
+Com o access token em mãos e o ClusterSecretStore apontando pros seus IDs,
+o onboarding abaixo finaliza o resto.
+
+## Quickstart (onboarding completo)
+
+Script único que faz Argo CD → root-app → ESO → Bitwarden em um só passo.
+Idempotente; pede o access token do Bitwarden em runtime.
+
+```bash
+bash scripts/onboarding.sh
+```
+
+O que ele executa, em ordem:
+
+1. `kubectl apply -k bootstrap/argocd`
+2. Espera `argocd-server` ficar Ready
+3. `kubectl apply -f bootstrap/root-app/application.yaml`
+4. Espera o namespace `external-secrets` e o controller do ESO
+5. Pede o **access token** do machine account (Bitwarden Secrets Manager) e cria o Secret `bitwarden-access-token`
+6. Roda `scripts/bootstrap-bitwarden-sdk-tls.sh` (cert self-signed do sidecar)
+7. Espera o `ClusterSecretStore bitwarden-homelab` virar Ready
+
+Para reescrever o token depois:
+
+```bash
+FORCE_REWRITE_TOKEN=1 bash scripts/onboarding.sh
+```
+
+Apps individuais que precisam de TLS no próprio Ingress trazem seu script
+(ex.: `deploy-keycloak/scripts/bootstrap-tls.sh` gera o `keycloak-tls`).
+
+## Bootstrap manual (passo a passo)
+
+Se preferir rodar à mão em vez do script:
 
 ```bash
 kubectl apply -k bootstrap/argocd
 kubectl apply -f bootstrap/root-app/application.yaml
 ```
 
-## External Secrets Operator + Bitwarden — bootstrap manual
-
-A `Application` `external-secrets` instala o ESO + sidecar `bitwarden-sdk-server`
-e a `external-secrets-config` cria o `ClusterSecretStore` `bitwarden-homelab`.
-Dois segredos precisam ser criados **fora do Git** (chicken-and-egg):
+Depois, dois segredos precisam ser criados **fora do Git** (chicken-and-egg):
 
 1. **Access token** do machine account no Bitwarden Secrets Manager:
 
