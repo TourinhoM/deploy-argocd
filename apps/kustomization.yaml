@@ -7,6 +7,8 @@ kind: Kustomization
 
 resources:
   - projects/platform.yaml
+  - projects/system.yaml
+  - projects/monitoring.yaml
   - applications/argocd-self.yaml
   - applications/external-secrets.yaml
   - applications/external-secrets-config.yaml

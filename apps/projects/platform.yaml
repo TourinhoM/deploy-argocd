@@ -23,6 +23,4 @@ spec:
 # TODO:
 # - Quando ativar o ApplicationSet `infra` (hoje com CHANGE_ME_REPO_URL),
 #   adicionar o repoURL real em sourceRepos.
-# - Avaliar separar default-project apps (argocd-self, monitoring, monitoring-dashboards)
-#   em AppProjects dedicados (`system`, `monitoring`).
 

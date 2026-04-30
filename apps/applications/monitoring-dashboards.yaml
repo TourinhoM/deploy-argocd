@@ -4,7 +4,7 @@ metadata:
   name: monitoring-dashboards
   namespace: argocd
 spec:
-  project: default
+  project: monitoring
 
   source:
     repoURL: https://github.com/TourinhoM/deploy-stack-monitor.git
