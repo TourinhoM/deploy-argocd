@@ -75,11 +75,9 @@ spec:
           hostRootFsMount:
             enabled: false
 
-  destinations:
-    - namespace: monitoring
-      server: https://kubernetes.default.svc
-    - namespace: kube-system
-      server: https://kubernetes.default.svc
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
 
   syncPolicy:
     automated:
