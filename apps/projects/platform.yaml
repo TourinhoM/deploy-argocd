@@ -7,7 +7,7 @@ spec:
   description: Projeto base para infra/plataforma (GitOps)
   sourceRepos:
     - https://github.com/TourinhoM/deploy-keycloak.git
-    - https://github.com/TourinhoM/deploy-prostgresql.git
+    - https://github.com/TourinhoM/deploy-postgresql.git
     - https://github.com/TourinhoM/deploy-llm-runtime.git
   destinations:
     - namespace: keycloak
