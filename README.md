@@ -101,6 +101,56 @@ sudo k3s kubectl get clustersecretstore bitwarden-homelab \
   -o jsonpath='{.status.conditions}'   # type=Ready, status=True
 ```
 
+## Lint / validação CI
+
+O repo é validado pelo workflow `lint-k8s.yml` do
+[`org-ci-platform`](../org-ci-platform) — 3 scanners em paralelo, todos sobre
+o **output do `kustomize build`** (não sobre YAMLs crus, porque patches
+strategic-merge são fragmentos sem securityContext/resources que o merge
+preenche depois).
+
+| Scanner | O que valida |
+|---|---|
+| **kubeconform** | Schema das APIs k8s + CRDs (Argo CD, ESO, etc.) via datreeio catalog |
+| **kube-linter** | Best-practices: resources, probes, securityContext, capabilities |
+| **trivy-k8s** | CIS Kubernetes Benchmark + NSA hardening; gate em HIGH/CRITICAL |
+
+Caller em `.github/workflows/lint.yml` — zero inputs, plug-and-play.
+
+### Patches em `bootstrap/argocd/` por causa do lint
+
+O Argo CD upstream (`argo-cd v2.11.7/manifests/install.yaml`) é referenciado
+via URL na `kustomization.yaml`. Patches strategic-merge ajustam ele pra
+cluster homelab e pra passar nos scanners:
+
+- **`argocd-cmd-params-cm-patch.yaml`** — config do Argo CD (URL, insecure-mode etc.).
+- **`resources-patch.yaml`** — resolve 3 conjuntos de findings do lint:
+  1. `unset-cpu-requirements` / `unset-memory-requirements` (kube-linter):
+     define `resources.requests/limits` em todos os 7 workloads (calibrados
+     pra WSL — sem CPU limits intencionalmente, ver discussão Tim Hockin/SIG-Node).
+  2. `liveness-port` (kube-linter): declara `containerPort: 9001` no
+     notifications-controller (upstream não declara mas a probe aponta pra ele).
+  3. `KSV-0118` (trivy-k8s): adiciona Pod-level `securityContext`
+     (`runAsNonRoot` + `seccompProfile: RuntimeDefault`) nos 5 workloads que
+     upstream não seta. Container-level já vem no upstream — patch reforça
+     baseline a nível de Pod.
+
+### `.trivyignore` — exceptions documentadas
+
+4 findings CRITICAL do trivy-k8s são **inerentes ao funcionamento do Argo CD**.
+Restringir essas permissões quebra a plataforma. Aceitos via `.trivyignore`
+na raiz, com justificativa por linha:
+
+| ID | Por que aceito |
+|---|---|
+| `AVD-KSV-0041` | `applicationset-controller` precisa ler `Secrets` pra Matrix e Secret-based generators ([docs](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Matrix/)). |
+| `AVD-KSV-0044` | Wildcard verb derivado do modelo de sync arbitrário do Argo CD. |
+| `AVD-KSV-0046` | `application-controller` + `server` precisam de cluster-wide manage — função core do GitOps controller, sem isso ele não aplica manifests arbitrários. |
+
+> Toda nova exception em `.trivyignore` **deve vir com comentário explicando
+> o porquê**. Sem isso, o arquivo vira lugar de varrer findings pra debaixo
+> do tapete em vez de aceitar conscientemente.
+
 ## Plano: o que fazer em cada arquivo
 
 ### `bootstrap/argocd/kustomization.yaml`
