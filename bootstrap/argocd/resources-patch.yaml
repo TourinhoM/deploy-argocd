@@ -1,12 +1,20 @@
 # Strategic merge patches contra argo-cd v2.11.7/manifests/install.yaml.
 #
-# Objetivo: definir resources.requests/limits em todos os containers + declarar
-# a porta 9001 do notifications-controller (resolve liveness-port false-positive
-# do kube-linter — Argo CD nao declara a porta no spec mas a probe aponta pra ela).
+# Objetivos:
+#   1. Definir resources.requests/limits em todos os containers (cluster homelab WSL).
+#   2. Declarar a porta 9001 do notifications-controller (resolve liveness-port
+#      false-positive do kube-linter — Argo CD nao declara a porta no spec mas
+#      a probe aponta pra ela).
+#   3. Adicionar Pod-level securityContext (runAsNonRoot + seccompProfile
+#      RuntimeDefault) nos 5 workloads que upstream nao seta — resolve trivy-k8s
+#      KSV-0118. Containers ja tem securityContext proprio no upstream; aqui
+#      garantimos que o Pod-level reforca a baseline.
 #
-# Valores calibrados pra cluster homelab WSL (footprint baixo). Sem CPU limits
-# intencionalmente: CPU throttling sob limit gera latencia desnecessaria
-# (best practice atual — ver discussao Tim Hockin/SIG-Node).
+# Sem CPU limits intencionalmente: CPU throttling sob limit gera latencia
+# desnecessaria (best practice atual — ver discussao Tim Hockin/SIG-Node).
+#
+# Pod-level securityContext NAO eh adicionado em redis/notifications-controller
+# pois trivy nao flagou — provavelmente upstream ja seta para esses dois.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -15,6 +23,10 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: argocd-applicationset-controller
           resources:
@@ -31,6 +43,10 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: copyutil
           resources:
@@ -100,6 +116,10 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: copyutil
           resources:
@@ -124,6 +144,10 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: argocd-server
           resources:
@@ -140,6 +164,10 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: argocd-application-controller
           # Reconcile loop pesado — request/limit mais agressivos que demais.
