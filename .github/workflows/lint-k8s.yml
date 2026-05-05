@@ -1,0 +1,37 @@
+# Exemplo de uso do reusable workflow lint-k8s em repo GitOps.
+# Copie para .github/workflows/lint.yml no repo consumer e ajuste inputs.
+#
+# Os 3 jobs (kubeconform, kube-linter, trivy-k8s) rodam em paralelo.
+# Cada falha bloqueia o merge separadamente — visibilidade total em um run.
+name: Lint
+
+on:
+  # Qualquer branch — feedback imediato em feature branches; abrir PR
+  # nao duplica o run (PR mostra o check do push existente).
+  push:
+  schedule:
+    - cron: '0 8 * * 1'
+  # Botao manual no GitHub UI pra debug sem precisar de novo commit.
+  workflow_dispatch:
+
+jobs:
+  lint:
+    permissions:
+      contents: read
+      security-events: write   # SARIF upload (kube-linter, trivy-k8s)
+    uses: TourinhoM/org-ci-platform/.github/workflows/lint-k8s.yml@main
+    with:
+      # Diretorio raiz para kube-linter + trivy-k8s scanearem.
+      directory: '.'
+
+      # kubeconform com kustomize: lista um overlay por linha.
+      # Comente se o repo nao usa kustomize e use 'paths' abaixo.
+      kustomize-dirs: |
+        envs/dev
+        envs/prod
+
+      # Versao do schema k8s. Default 'master' = ultima.
+      kubernetes-version: '1.30.0'
+
+      # Opcional: config custom de kube-linter no repo do caller.
+      # kube-linter-config: '.kube-linter.yaml'
