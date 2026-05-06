@@ -1,20 +1,15 @@
 # Strategic merge patches contra argo-cd v2.11.7/manifests/install.yaml.
 #
 # Objetivos:
-#   1. Definir resources.requests/limits em todos os containers (cluster homelab WSL).
-#   2. Declarar a porta 9001 do notifications-controller (resolve liveness-port
+#   1. Definir resources.requests/limits (CPU + memoria) em todos os containers.
+#   2. Setar imagePullPolicy: Always em todos os containers (defesa contra
+#      tag mutation — proximo nivel seria digest pinning via Renovate).
+#   3. Declarar a porta 9001 do notifications-controller (resolve liveness-port
 #      false-positive do kube-linter — Argo CD nao declara a porta no spec mas
 #      a probe aponta pra ela).
-#   3. Adicionar Pod-level securityContext (runAsNonRoot + seccompProfile
-#      RuntimeDefault) nos 5 workloads que upstream nao seta — resolve trivy-k8s
-#      KSV-0118. Containers ja tem securityContext proprio no upstream; aqui
-#      garantimos que o Pod-level reforca a baseline.
-#
-# Sem CPU limits intencionalmente: CPU throttling sob limit gera latencia
-# desnecessaria (best practice atual — ver discussao Tim Hockin/SIG-Node).
-#
-# Pod-level securityContext NAO eh adicionado em redis/notifications-controller
-# pois trivy nao flagou — provavelmente upstream ja seta para esses dois.
+#   4. Adicionar Pod-level securityContext (runAsNonRoot + seccompProfile
+#      RuntimeDefault) nos workloads que upstream nao seta — reforca baseline
+#      a nivel de Pod alem do container.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,11 +24,13 @@ spec:
           type: RuntimeDefault
       containers:
         - name: argocd-applicationset-controller
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
             limits:
+              cpu: 200m
               memory: 128Mi
 ---
 apiVersion: apps/v1
@@ -49,19 +46,23 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: copyutil
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
             limits:
+              cpu: 50m
               memory: 64Mi
       containers:
         - name: dex
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
             limits:
+              cpu: 200m
               memory: 128Mi
 ---
 apiVersion: apps/v1
@@ -73,6 +74,7 @@ spec:
     spec:
       containers:
         - name: argocd-notifications-controller
+          imagePullPolicy: Always
           # Porta 9001 (metrics/health) declarada pra alinhar com a livenessProbe.
           ports:
             - name: metrics
@@ -83,6 +85,7 @@ spec:
               cpu: 25m
               memory: 64Mi
             limits:
+              cpu: 100m
               memory: 128Mi
 ---
 apiVersion: apps/v1
@@ -94,19 +97,23 @@ spec:
     spec:
       initContainers:
         - name: secret-init
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
             limits:
+              cpu: 50m
               memory: 64Mi
       containers:
         - name: redis
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
             limits:
+              cpu: 200m
               memory: 128Mi
 ---
 apiVersion: apps/v1
@@ -122,19 +129,24 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: copyutil
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
             limits:
+              cpu: 50m
               memory: 64Mi
       containers:
         - name: argocd-repo-server
+          imagePullPolicy: Always
+          # Operations pesadas (kustomize/helm render) — limit mais alto.
           resources:
             requests:
               cpu: 50m
               memory: 128Mi
             limits:
+              cpu: 500m
               memory: 256Mi
 ---
 apiVersion: apps/v1
@@ -150,11 +162,13 @@ spec:
           type: RuntimeDefault
       containers:
         - name: argocd-server
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
             limits:
+              cpu: 200m
               memory: 128Mi
 ---
 apiVersion: apps/v1
@@ -170,10 +184,12 @@ spec:
           type: RuntimeDefault
       containers:
         - name: argocd-application-controller
+          imagePullPolicy: Always
           # Reconcile loop pesado — request/limit mais agressivos que demais.
           resources:
             requests:
               cpu: 100m
               memory: 256Mi
             limits:
+              cpu: 500m
               memory: 512Mi

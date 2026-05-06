@@ -14,4 +14,5 @@ resources:
 patches:
   - path: argocd-cmd-params-cm-patch.yaml
   - path: resources-patch.yaml
+  - path: polaris-rbac-exempt-patch.yaml
 

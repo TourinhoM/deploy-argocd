@@ -124,31 +124,36 @@ via URL na `kustomization.yaml`. Patches strategic-merge ajustam ele pra
 cluster homelab e pra passar nos scanners:
 
 - **`argocd-cmd-params-cm-patch.yaml`** — config do Argo CD (URL, insecure-mode etc.).
-- **`resources-patch.yaml`** — resolve 3 conjuntos de findings do lint:
-  1. `unset-cpu-requirements` / `unset-memory-requirements` (kube-linter):
-     define `resources.requests/limits` em todos os 7 workloads (calibrados
-     pra WSL — sem CPU limits intencionalmente, ver discussão Tim Hockin/SIG-Node).
-  2. `liveness-port` (kube-linter): declara `containerPort: 9001` no
+- **`resources-patch.yaml`** — endereça findings do lint e ajusta upstream pra production-grade:
+  1. `resources.requests/limits` (CPU + memória) em todos os 7 workloads.
+  2. `imagePullPolicy: Always` em todos os containers (defesa contra tag mutation;
+     próximo nível seria digest pinning via Renovate).
+  3. `liveness-port` (kube-linter): declara `containerPort: 9001` no
      notifications-controller (upstream não declara mas a probe aponta pra ele).
-  3. Pod-level `securityContext` (`runAsNonRoot` + `seccompProfile: RuntimeDefault`)
+  4. Pod-level `securityContext` (`runAsNonRoot` + `seccompProfile: RuntimeDefault`)
      nos 5 workloads que upstream não seta. Container-level já vem no upstream —
      patch reforça baseline a nível de Pod.
 
-### `.trivyignore` — exceptions documentadas
+### Polaris — exemptions e config
 
-4 findings CRITICAL do trivy-k8s são **inerentes ao funcionamento do Argo CD**.
-Restringir essas permissões quebra a plataforma. Aceitos via `.trivyignore`
-na raiz, com justificativa por linha:
+**`polaris.yaml`** (raiz) desativa checks que não aplicam ao homelab single-node WSL ou são decisão de scope:
 
-| ID | Por que aceito |
-|---|---|
-| `AVD-KSV-0041` | `applicationset-controller` precisa ler `Secrets` pra Matrix e Secret-based generators ([docs](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Matrix/)). |
-| `AVD-KSV-0044` | Wildcard verb derivado do modelo de sync arbitrário do Argo CD. |
-| `AVD-KSV-0046` | `application-controller` + `server` precisam de cluster-wide manage — função core do GitOps controller, sem isso ele não aplica manifests arbitrários. |
+- `priorityClassNotSet`, `topologySpreadConstraint`, `missingPodDisruptionBudget`, `missingNetworkPolicy`, `deploymentMissingReplicas` — irrelevantes em 1 nó com replicas: 1.
+- `automountServiceAccountToken` — componentes Argo CD precisam de API access.
+- `metadataAndInstanceMismatched` — convenção `app.kubernetes.io/instance` que upstream não segue.
 
-> Toda nova exception em `.trivyignore` **deve vir com comentário explicando
-> o porquê**. Sem isso, o arquivo vira lugar de varrer findings pra debaixo
-> do tapete em vez de aceitar conscientemente.
+**`bootstrap/argocd/polaris-rbac-exempt-patch.yaml`** annota 4 RBAC resources com `polaris.fairwinds.com/<check>-exempt: "true"` pros dangers inerentes ao Argo CD:
+
+| Resource | Check exempted | Por quê |
+|---|---|---|
+| `ClusterRoleBinding/argocd-application-controller` | `clusterrolebindingClusterAdmin`, `clusterrolebindingPodExecAttach` | aplicar manifests arbitrários é função core; sync hooks usam pods/exec |
+| `ClusterRoleBinding/argocd-server` | `clusterrolebindingPodExecAttach` | UI features (logs, exec) |
+| `ClusterRole/argocd-application-controller` | `clusterrolePodExecAttach` | mesma justificativa do binding |
+| `ClusterRole/argocd-server` | `clusterrolePodExecAttach` | mesma justificativa do binding |
+
+> Toda nova exemption (em `polaris.yaml` ou via annotation) **deve vir com
+> justificativa explicando o porquê**. Sem isso, o arquivo vira lugar de
+> varrer findings pra debaixo do tapete em vez de aceitar conscientemente.
 
 ## Plano: o que fazer em cada arquivo
 
