@@ -113,7 +113,7 @@ preenche depois).
 |---|---|
 | **kubeconform** | Schema das APIs k8s + CRDs (Argo CD, ESO, etc.) via datreeio catalog |
 | **kube-linter** | Best-practices: resources, probes, securityContext, capabilities |
-| **trivy-k8s** | CIS Kubernetes Benchmark + NSA hardening; gate em HIGH/CRITICAL |
+| **polaris** | Security/reliability/efficiency: TLS, hostPort, image policies, PriorityClass, single replica; gate em `danger` |
 
 Caller em `.github/workflows/lint.yml` — zero inputs, plug-and-play.
 
@@ -130,10 +130,9 @@ cluster homelab e pra passar nos scanners:
      pra WSL — sem CPU limits intencionalmente, ver discussão Tim Hockin/SIG-Node).
   2. `liveness-port` (kube-linter): declara `containerPort: 9001` no
      notifications-controller (upstream não declara mas a probe aponta pra ele).
-  3. `KSV-0118` (trivy-k8s): adiciona Pod-level `securityContext`
-     (`runAsNonRoot` + `seccompProfile: RuntimeDefault`) nos 5 workloads que
-     upstream não seta. Container-level já vem no upstream — patch reforça
-     baseline a nível de Pod.
+  3. Pod-level `securityContext` (`runAsNonRoot` + `seccompProfile: RuntimeDefault`)
+     nos 5 workloads que upstream não seta. Container-level já vem no upstream —
+     patch reforça baseline a nível de Pod.
 
 ### `.trivyignore` — exceptions documentadas
 
