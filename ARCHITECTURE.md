@@ -62,6 +62,7 @@ flowchart TD
     Applications --> Self["argocd-self<br/>→ bootstrap/argocd/"]
     Applications --> ESO["external-secrets<br/>→ Helm chart"]
     Applications --> ESOConfig["external-secrets-config<br/>→ cluster-config/external-secrets/"]
+    Applications --> KcOp["keycloak-operator<br/>→ keycloak/keycloak-k8s-resources@26.6.1"]
     Applications --> Pg["infra-postgresql-dev<br/>→ deploy-postgresql repo"]
     Applications --> Kc["infra-keycloak-dev<br/>→ deploy-keycloak repo"]
     Applications --> MonApp["monitoring<br/>→ kube-prometheus-stack chart"]
@@ -71,6 +72,7 @@ flowchart TD
 
     Pg -. "destination" .-> NsInfra[ns: infra]
     Kc -. "destination" .-> NsKc[ns: keycloak]
+    KcOp -. "destination" .-> NsKc
     ESOConfig -. "destination" .-> NsES[ns: external-secrets]
     MonApp -. "destination" .-> NsMon[ns: monitoring]
 ```
@@ -214,6 +216,12 @@ Helm que silenciosamente troca defaults.
   (Postgres, Keycloak) requer PR manual no repo correspondente. Argo CD
   Image Updater integraria com Renovate/Dependabot mas não está
   configurado.
+- **Keycloak Operator instalado mas sem consumer ativo.** Application
+  `keycloak-operator` (project `system`) instala CRDs (`Keycloak`,
+  `KeycloakRealmImport`) e o controller no namespace `keycloak`, mas a
+  workload (`infra-keycloak-dev`, `deploy-keycloak` repo) ainda roda como
+  Deployment direto. Migração pra `Keycloak` CR + realm declarativo é
+  trabalho planejado no `deploy-keycloak`.
 
 ### Se a stack mudar, viram limitação
 
