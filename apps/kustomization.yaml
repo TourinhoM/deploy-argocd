@@ -19,4 +19,5 @@ resources:
   - applications/infra-ollama.yaml
   - applications/monitoring.yaml
   - applications/monitoring-dashboards.yaml
+  - applications/monitoring-alerts.yaml
 
