@@ -8,7 +8,7 @@ spec:
 
   source:
     repoURL: https://github.com/keycloak/keycloak-k8s-resources
-    targetRevision: 26.6.1
+    targetRevision: 26.5.7
     path: kubernetes
     directory:
       recurse: false
