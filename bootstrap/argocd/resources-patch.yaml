@@ -185,7 +185,8 @@ spec:
       containers:
         - name: argocd-application-controller
           imagePullPolicy: Always
-          # Memory subiu de 512Mi pra 1Gi: KeycloakRealmImport com realm
+          # Limit 1Gi (vs default 512Mi). Ver decision log em
+          # ARCHITECTURE.md — "Memory limit do argocd-application-controller".
           resources:
             requests:
               cpu: 100m

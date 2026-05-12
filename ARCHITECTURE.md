@@ -62,7 +62,7 @@ flowchart TD
     Applications --> Self["argocd-self<br/>→ bootstrap/argocd/"]
     Applications --> ESO["external-secrets<br/>→ Helm chart"]
     Applications --> ESOConfig["external-secrets-config<br/>→ cluster-config/external-secrets/"]
-    Applications --> KcOp["keycloak-operator<br/>→ keycloak/keycloak-k8s-resources@26.6.1"]
+    Applications --> KcOp["keycloak-operator<br/>→ keycloak/keycloak-k8s-resources@26.5.7"]
     Applications --> Pg["infra-postgresql-dev<br/>→ deploy-postgresql repo"]
     Applications --> Kc["infra-keycloak-dev<br/>→ deploy-keycloak repo"]
     Applications --> MonApp["monitoring<br/>→ kube-prometheus-stack chart"]
@@ -178,6 +178,29 @@ ClusterSecretStore.
 TLS cert do sidecar SDK precisam existir antes do ESO funcionar, então
 não dá pra serem GitOps. `scripts/onboarding.sh` resolve idempotente.
 
+### Memory limit do `argocd-application-controller`: 1Gi (default era 512Mi)
+
+**Escolha:** `bootstrap/argocd/resources-patch.yaml` bumpa o limit do
+container `argocd-application-controller` de 512Mi (default upstream)
+pra 1Gi.
+
+**Alternativa:** manter default e dividir a workload pesada em
+recursos menores.
+
+**Por quê:** o `KeycloakRealmImport` CR vive inline em
+`deploy-keycloak/base/realms/kubernetes/realm-import.yaml` (~2k linhas
+de YAML, ~60KB). O Application controller mantém em memória o desired
+state de todos os recursos sincronizados pra fazer diff contínuo
+contra o cluster — esse CR sozinho consome ~200-300MB durante
+reconcile, e com outros workloads grandes (Postgres StatefulSet,
+Keycloak Operator manifests) o controller hit OOMKilled em 512Mi.
+
+**Custo:** k3s single-node em WSL homelab tem memória limitada (~8-12GB
+total). 1Gi pro controller = 12% do orçamento. Em cluster maior é
+inexpressivo; aqui é trade real. Reverter exigiria split do
+KeycloakRealmImport em fragmentos menores (1 client por arquivo
+talvez) — refactor disruptivo no `deploy-keycloak`.
+
 ### Manifests upstream + Kustomize patches em vez de Helm chart
 
 **Escolha:** `bootstrap/argocd/kustomization.yaml` referencia
@@ -216,12 +239,11 @@ Helm que silenciosamente troca defaults.
   (Postgres, Keycloak) requer PR manual no repo correspondente. Argo CD
   Image Updater integraria com Renovate/Dependabot mas não está
   configurado.
-- **Keycloak Operator instalado mas sem consumer ativo.** Application
-  `keycloak-operator` (project `system`) instala CRDs (`Keycloak`,
-  `KeycloakRealmImport`) e o controller no namespace `keycloak`, mas a
-  workload (`infra-keycloak-dev`, `deploy-keycloak` repo) ainda roda como
-  Deployment direto. Migração pra `Keycloak` CR + realm declarativo é
-  trabalho planejado no `deploy-keycloak`.
+- **Keycloak Operator pinado em 26.5.7.** Versão 26.6.x tem regressão
+  upstream com schema/SDK mismatch ([keycloak/keycloak#48438](https://github.com/keycloak/keycloak/issues/48438)).
+  Application `keycloak-operator` (project `system`) referencia
+  `targetRevision: 26.5.7`. Reverter pro último estável quando bug for
+  corrigido — detalhes do impacto em `deploy-keycloak/ARCHITECTURE.md`.
 
 ### Se a stack mudar, viram limitação
 
