@@ -24,7 +24,9 @@ spec:
           replicaCount: 1
         cainjector:
           replicaCount: 1
-
+        global:
+          leaderElection:
+            namespace: cert-manager
         # Prometheus annotations + ServiceMonitor pra integrar com
         # kube-prometheus-stack (label release=monitoring no SM, ver
         # values doc do chart pra forma corrente).
