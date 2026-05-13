@@ -22,4 +22,5 @@ resources:
   - applications/monitoring.yaml
   - applications/monitoring-dashboards.yaml
   - applications/monitoring-alerts.yaml
+  - applications/monitoring-tls.yaml
 

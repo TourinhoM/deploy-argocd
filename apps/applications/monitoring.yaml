@@ -45,7 +45,7 @@ spec:
             tls:
               - hosts:
                   - grafana.local
-                secretName: keycloak-tls
+                secretName: monitoring-tls
         prometheus:
           service:
             type: ClusterIP
@@ -58,7 +58,7 @@ spec:
             hosts:
               - prometheus.local
             tls:
-              - secretName: keycloak-tls
+              - secretName: monitoring-tls
                 hosts:
                   - prometheus.local
           prometheusSpec:
