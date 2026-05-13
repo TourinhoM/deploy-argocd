@@ -17,8 +17,6 @@ spec:
     helm:
       values: |
         installCRDs: true
-
-        # Singleton — replicas: 1 no homelab.
         replicaCount: 1
         webhook:
           replicaCount: 1
