@@ -12,6 +12,8 @@ resources:
   - applications/argocd-self.yaml
   - applications/external-secrets.yaml
   - applications/external-secrets-config.yaml
+  - applications/security-cert-manager.yaml
+  - applications/security-cert-manager-config.yaml
   - applications/keycloak-operator.yaml
   - applications/infra-postgresql.yaml
   - applications/security-dependency-track.yaml
