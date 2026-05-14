@@ -10,10 +10,13 @@ resources:
   - projects/system.yaml
   - projects/monitoring.yaml
   - applications/argocd-self.yaml
+  - applications/argocd-config.yaml
   - applications/external-secrets.yaml
   - applications/external-secrets-config.yaml
   - applications/security-cert-manager.yaml
   - applications/security-cert-manager-config.yaml
+  - applications/security-trivy-operator.yaml
+  - applications/security-trivy-operator-config.yaml
   - applications/keycloak-operator.yaml
   - applications/infra-postgresql.yaml
   - applications/security-dependency-track.yaml

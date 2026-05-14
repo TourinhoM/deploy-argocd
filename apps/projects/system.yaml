@@ -4,12 +4,14 @@ metadata:
   name: system
   namespace: argocd
 spec:
-  description: Componentes de plataforma do cluster (Argo CD self-management, External Secrets, Keycloak Operator, cert-manager)
+  description: Componentes de plataforma do cluster (Argo CD self-management, External Secrets, Keycloak Operator, cert-manager, trivy-operator)
   sourceRepos:
     - https://github.com/TourinhoM/deploy-argocd
     - https://github.com/TourinhoM/deploy-cert-manager
+    - https://github.com/TourinhoM/deploy-trivy-operator
     - https://charts.external-secrets.io
     - https://charts.jetstack.io
+    - https://aquasecurity.github.io/helm-charts/
     - https://github.com/keycloak/keycloak-k8s-resources
   destinations:
     - namespace: argocd
@@ -19,6 +21,8 @@ spec:
     - namespace: keycloak
       server: https://kubernetes.default.svc
     - namespace: cert-manager
+      server: https://kubernetes.default.svc
+    - namespace: trivy-system
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"
