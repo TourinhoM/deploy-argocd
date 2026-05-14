@@ -4,10 +4,12 @@ metadata:
   name: monitoring
   namespace: argocd
 spec:
-  description: Stack de observabilidade (Prometheus, Grafana, Alertmanager) e dashboards
+  description: Stack de observabilidade (Prometheus, Grafana, Alertmanager, Loki, Alloy) e dashboards
   sourceRepos:
     - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
     - https://github.com/TourinhoM/deploy-stack-monitor.git
+    - https://github.com/TourinhoM/deploy-loki
   destinations:
     - namespace: monitoring
       server: https://kubernetes.default.svc
