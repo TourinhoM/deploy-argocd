@@ -4,5 +4,5 @@ metadata:
   name: argocd-cmd-params-cm
 data:
   server.insecure: "true"
-  otlp.address: "monitoring-tempo.monitoring.svc.cluster.local:4317"
+  otlp.address: "monitoring-alloy.monitoring.svc.cluster.local:4317"
   otlp.insecure: "true"

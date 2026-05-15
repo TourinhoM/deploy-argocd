@@ -15,6 +15,11 @@ spec:
     helm:
       values: |
         alloy:
+          extraPorts:
+            - name: otlp-grpc
+              port: 4317
+              targetPort: 4317
+              protocol: TCP
           configMap:
             content: |
               // Descobre todos os pods do cluster via Kubernetes API
@@ -57,16 +62,60 @@ spec:
                 }
               }
 
-              // Recebe traces via OTLP (gRPC e HTTP)
+              // Recebe traces via OTLP (gRPC e HTTP) de todos os servicos
               otelcol.receiver.otlp "default" {
                 grpc { endpoint = "0.0.0.0:4317" }
                 http { endpoint = "0.0.0.0:4318" }
+                output {
+                  traces = [otelcol.processor.k8sattributes.default.input]
+                }
+              }
+
+              // Enriquece spans com metadados do pod origem (namespace, deployment, etc.)
+              otelcol.processor.k8sattributes "default" {
+                auth_type = "serviceAccount"
+
+                pod_association {
+                  sources {
+                    from = "connection"
+                  }
+                }
+
+                extract {
+                  metadata = [
+                    "k8s.pod.name",
+                    "k8s.pod.uid",
+                    "k8s.deployment.name",
+                    "k8s.namespace.name",
+                    "k8s.node.name",
+                  ]
+                }
+
+                output {
+                  traces = [otelcol.processor.transform.set_peer_service.input]
+                }
+              }
+
+              // Deriva peer.service a partir de server.address para o Service Structure funcionar
+              // FQDN (ex: postgresql.infra.svc.cluster.local) -> primeiro componente (postgresql)
+              // Short hostname (ex: keycloak-service) -> usado diretamente
+              otelcol.processor.transform "set_peer_service" {
+                error_mode = "ignore"
+
+                trace_statements {
+                  context = "span"
+                  statements = [
+                    `set(attributes["peer.service"], Split(attributes["server.address"], ".")[0]) where attributes["peer.service"] == nil and IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$")`,
+                    `set(attributes["peer.service"], attributes["server.address"]) where attributes["peer.service"] == nil and IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+$")`,
+                  ]
+                }
+
                 output {
                   traces = [otelcol.exporter.otlp.tempo.input]
                 }
               }
 
-              // Encaminha traces para o Tempo
+              // Encaminha traces enriquecidos para o Tempo
               otelcol.exporter.otlp "tempo" {
                 client {
                   endpoint = "monitoring-tempo.monitoring.svc.cluster.local:4317"
@@ -76,6 +125,12 @@ spec:
 
         controller:
           type: daemonset
+
+        rbac:
+          extraClusterRoleRules:
+            - apiGroups: ["apps"]
+              resources: ["replicasets"]
+              verbs: ["get", "list", "watch"]
 
         resources:
           requests:

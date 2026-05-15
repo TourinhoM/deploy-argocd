@@ -86,6 +86,47 @@ Applications. AppProjects restringem `sourceRepos` e `destinations`
 
 ---
 
+## Observabilidade — pipeline de traces
+
+```mermaid
+flowchart LR
+    ArgoCD["Argo CD<br/>(server · controller · repo-server)"]
+    Keycloak["Keycloak Pod<br/>(ns: keycloak)"]
+
+    subgraph monitoring["ns: monitoring"]
+        Alloy["Alloy DaemonSet<br/>receiver :4317<br/>k8sattributes + peer.service transform"]
+        Tempo[Tempo]
+        Prom[Prometheus]
+    end
+
+    ArgoCD -- "OTLP gRPC :4317" --> Alloy
+    Keycloak -- "OTLP gRPC :4317" --> Alloy
+    Alloy -- "OTLP gRPC :4317" --> Tempo
+    Tempo -- "remote write" --> Prom
+```
+
+Todos os serviços instrumentados enviam traces para o **Alloy** (não diretamente
+para o Tempo). O Alloy aplica dois processadores antes de encaminhar:
+
+1. **`k8sattributes`** — enriquece spans com metadados do pod de origem
+   (`k8s.pod.name`, `k8s.deployment.name`, `k8s.namespace.name`) usando o IP de
+   conexão para lookup na k8s API.
+2. **`transform` (OTTL)** — deriva o atributo `peer.service` a partir de
+   `server.address`:
+   - FQDN (`postgresql.infra.svc.cluster.local`) → primeiro componente (`postgresql`)
+   - Short hostname (`keycloak-service`) → usado diretamente
+
+Isso habilita a view **Service Structure** no Grafana Drilldown
+(`grafana-exploretraces-app`), que usa a query:
+`{span.kind="client"} | rate() by (resource.service.name, span.peer.service)`.
+
+ArgoCD é configurado via `argocd-cmd-params-cm-patch.yaml`
+(`otlp.address: monitoring-alloy.monitoring.svc.cluster.local:4317`).
+Keycloak via `additionalOptions[tracing-endpoint]` no `Keycloak` CR
+(gerenciado em `deploy-keycloak`).
+
+---
+
 ## External Secrets — Bitwarden Secrets Manager
 
 ```mermaid
