@@ -37,6 +37,7 @@ spec:
                 processors:
                   - service-graphs
                   - span-metrics
+                max_active_series: 100000
 
         persistence:
           enabled: true
