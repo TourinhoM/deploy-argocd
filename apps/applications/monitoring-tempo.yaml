@@ -32,11 +32,9 @@ spec:
             enabled: true
             remoteWriteUrl: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write
           global_overrides:
-            defaults:
-              metrics_generator:
-                processors:
-                  - service-graphs
-                  - span-metrics
+            metrics_generator_processors:
+              - service-graphs
+              - span-metrics
 
         persistence:
           enabled: true
