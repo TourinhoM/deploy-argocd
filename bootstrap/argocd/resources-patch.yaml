@@ -185,12 +185,11 @@ spec:
       containers:
         - name: argocd-application-controller
           imagePullPolicy: Always
-          # Limit 1Gi (vs default 512Mi). Ver decision log em
-          # ARCHITECTURE.md — "Memory limit do argocd-application-controller".
+          # Limit 2Gi — OOMKilled com 1Gi (31 restarts, Exit Code 137).
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              memory: 2Gi
