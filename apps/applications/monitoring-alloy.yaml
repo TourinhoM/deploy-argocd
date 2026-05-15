@@ -96,19 +96,21 @@ spec:
                 }
               }
 
-              // Deriva peer.service para o Service Structure funcionar
-              // 1. FQDN (ex: postgresql.infra.svc.cluster.local) -> primeiro componente (postgresql)
-              // 2. Short hostname (ex: keycloak-service) -> usado diretamente
-              // 3. Go gRPC resolve DNS antes do dial, server.address vira IP; usa rpc.method como fallback
+              // Deriva peer.service para o Service Structure funcionar.
+              // Condicoes mutuamente exclusivas por formato de server.address — sem checar == nil
+              // porque pcommon.Value zero != nil em OTTL e a condicao nunca dispararia.
+              // 1. FQDN (letra + ponto) -> primeiro componente DNS
+              // 2. Short hostname (letra, sem ponto) -> usado direto
+              // 3. IP (digito) + rpc.method conhecida -> nome do servico destino
               otelcol.processor.transform "set_peer_service" {
                 error_mode = "ignore"
 
                 trace_statements {
                   context = "span"
                   statements = [
-                    `set(attributes["peer.service"], Split(attributes["server.address"], ".")[0]) where attributes["peer.service"] == nil and IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+([.][a-zA-Z0-9-]+)+$")`,
-                    `set(attributes["peer.service"], attributes["server.address"]) where attributes["peer.service"] == nil and IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+$")`,
-                    `set(attributes["peer.service"], "argocd-repo-server") where attributes["peer.service"] == nil and IsMatch(attributes["rpc.method"], "^repository[.]")`,
+                    `set(attributes["peer.service"], Split(attributes["server.address"], ".")[0]) where IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+([.][a-zA-Z0-9-]+)+$")`,
+                    `set(attributes["peer.service"], attributes["server.address"]) where IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+$")`,
+                    `set(attributes["peer.service"], "argocd-repo-server") where IsMatch(attributes["server.address"], "^[0-9]") and IsMatch(attributes["rpc.method"], "^repository[.]")`,
                   ]
                 }
 
