@@ -67,6 +67,7 @@ spec:
                 hosts:
                   - prometheus.local
           prometheusSpec:
+            enableRemoteWriteReceiver: true
             retention: 7d
             storageSpec:
               volumeClaimTemplate:
