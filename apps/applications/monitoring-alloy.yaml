@@ -57,6 +57,23 @@ spec:
                 }
               }
 
+              // Recebe traces via OTLP (gRPC e HTTP)
+              otelcol.receiver.otlp "default" {
+                grpc { endpoint = "0.0.0.0:4317" }
+                http { endpoint = "0.0.0.0:4318" }
+                output {
+                  traces = [otelcol.exporter.otlp.tempo.input]
+                }
+              }
+
+              // Encaminha traces para o Tempo
+              otelcol.exporter.otlp "tempo" {
+                client {
+                  endpoint = "monitoring-tempo.monitoring.svc.cluster.local:4317"
+                  tls { insecure = true }
+                }
+              }
+
         controller:
           type: daemonset
 

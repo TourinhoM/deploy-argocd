@@ -26,6 +26,8 @@ resources:
   - applications/monitoring-loki.yaml
   - applications/monitoring-alloy.yaml
   - applications/monitoring-loki-config.yaml
+  - applications/monitoring-tempo.yaml
+  - applications/monitoring-tempo-config.yaml
   - applications/monitoring-dashboards.yaml
   - applications/monitoring-alerts.yaml
   - applications/monitoring-tls.yaml

@@ -10,6 +10,7 @@ spec:
     - https://grafana.github.io/helm-charts
     - https://github.com/TourinhoM/deploy-stack-monitor.git
     - https://github.com/TourinhoM/deploy-loki
+    - https://github.com/TourinhoM/deploy-tempo
   destinations:
     - namespace: monitoring
       server: https://kubernetes.default.svc
