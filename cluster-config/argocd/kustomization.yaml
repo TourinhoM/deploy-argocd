@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: argocd
 resources:
   - externalsecret-repo-creds-github.yaml
+  - servicemonitors.yaml
