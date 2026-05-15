@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://grafana.github.io/helm-charts
     chart: tempo
-    targetRevision: 1.10.3
+    targetRevision: 1.24.4
     helm:
       values: |
         tempo:
@@ -31,6 +31,13 @@ spec:
           metricsGenerator:
             enabled: true
             remoteWriteUrl: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+          global_overrides:
+            defaults:
+              metrics_generator:
+                processors:
+                  - service-graphs
+                  - span-metrics
+                  - local-blocks
 
         persistence:
           enabled: true
