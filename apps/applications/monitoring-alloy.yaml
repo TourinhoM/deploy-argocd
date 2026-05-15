@@ -96,12 +96,14 @@ spec:
                 }
               }
 
-              // Deriva peer.service para o Service Structure funcionar.
+              // Deriva peer.service e expoe kind como atributo de span para o Service Structure.
               // Condicoes mutuamente exclusivas por formato de server.address — sem checar == nil
               // porque pcommon.Value zero != nil em OTTL e a condicao nunca dispararia.
               // 1. FQDN (letra + ponto) -> primeiro componente DNS
               // 2. Short hostname (letra, sem ponto) -> usado direto
               // 3. IP (digito) + rpc.method conhecida -> nome do servico destino
+              // 4-5. Expoe kind como atributo de span — Tempo indexa kind como intrínseco mas
+              //      grafana-exploretraces-app 2.0.x usa {span.kind="client"} (atributo)
               otelcol.processor.transform "set_peer_service" {
                 error_mode = "ignore"
 
@@ -111,6 +113,8 @@ spec:
                     `set(attributes["peer.service"], Split(attributes["server.address"], ".")[0]) where IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+([.][a-zA-Z0-9-]+)+$")`,
                     `set(attributes["peer.service"], attributes["server.address"]) where IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+$")`,
                     `set(attributes["peer.service"], "argocd-repo-server") where IsMatch(attributes["server.address"], "^[0-9]") and IsMatch(attributes["rpc.method"], "^repository[.]")`,
+                    `set(attributes["kind"], "client") where kind == 3`,
+                    `set(attributes["kind"], "server") where kind == 2`,
                   ]
                 }
 
