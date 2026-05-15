@@ -96,9 +96,10 @@ spec:
                 }
               }
 
-              // Deriva peer.service a partir de server.address para o Service Structure funcionar
-              // FQDN (ex: postgresql.infra.svc.cluster.local) -> primeiro componente (postgresql)
-              // Short hostname (ex: keycloak-service) -> usado diretamente
+              // Deriva peer.service para o Service Structure funcionar
+              // 1. FQDN (ex: postgresql.infra.svc.cluster.local) -> primeiro componente (postgresql)
+              // 2. Short hostname (ex: keycloak-service) -> usado diretamente
+              // 3. Go gRPC resolve DNS antes do dial, server.address vira IP; usa rpc.method como fallback
               otelcol.processor.transform "set_peer_service" {
                 error_mode = "ignore"
 
@@ -107,6 +108,7 @@ spec:
                   statements = [
                     `set(attributes["peer.service"], Split(attributes["server.address"], ".")[0]) where attributes["peer.service"] == nil and IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+([.][a-zA-Z0-9-]+)+$")`,
                     `set(attributes["peer.service"], attributes["server.address"]) where attributes["peer.service"] == nil and IsMatch(attributes["server.address"], "^[a-zA-Z][a-zA-Z0-9-]+$")`,
+                    `set(attributes["peer.service"], "argocd-repo-server") where attributes["peer.service"] == nil and IsMatch(attributes["rpc.method"], "^repository[.]")`,
                   ]
                 }
 
