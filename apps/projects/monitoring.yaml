@@ -11,6 +11,7 @@ spec:
     - https://github.com/TourinhoM/deploy-stack-monitor.git
     - https://github.com/TourinhoM/deploy-loki
     - https://github.com/TourinhoM/deploy-tempo
+    - https://github.com/TourinhoM/deploy-argocd.git
   destinations:
     - namespace: monitoring
       server: https://kubernetes.default.svc

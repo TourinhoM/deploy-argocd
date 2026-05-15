@@ -22,6 +22,7 @@ resources:
   - applications/security-dependency-track.yaml
   - applications/infra-keycloak.yaml
   - applications/infra-ollama.yaml
+  - applications/monitoring-config.yaml
   - applications/monitoring.yaml
   - applications/monitoring-loki.yaml
   - applications/monitoring-alloy.yaml
