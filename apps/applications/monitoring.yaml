@@ -42,6 +42,21 @@ spec:
               user: grafana
               password: $__env{GF_DATABASE_PASSWORD}
 
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    sleep 5
+                    PLUGIN=/var/lib/grafana/plugins/grafana-exploretraces-app
+                    sed -i "s/R=\"\${primarySignal} && \${filters}\"/R=\"\${primarySignal}\"/g" $PLUGIN/module.js
+                    sed -i 's/}(JSON.parse(t));e.children.sort(/}((JSON.parse(t).traces||JSON.parse(t)));e.children.sort(/g' $PLUGIN/966.js
+                    NEW_HASH="sha256-$(sha256sum $PLUGIN/966.js | cut -d' ' -f1 | xxd -r -p | base64 -w 0)"
+                    OLD_HASH=$(grep -o '966:"sha256-[^"]*"' $PLUGIN/module.js | grep -o 'sha256-[^"]*')
+                    sed -i "s|966:\"${OLD_HASH}\"|966:\"${NEW_HASH}\"|g" $PLUGIN/module.js
+
           persistence:
             enabled: true
             type: pvc
