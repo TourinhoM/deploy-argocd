@@ -14,19 +14,18 @@ spec:
     targetRevision: 0.9.0
     helm:
       values: |
-        apiserver:
-          enabled: true
+        apiServer:
           persistentVolume:
             enabled: true
             size: 5Gi
           resources:
             requests:
-              cpu: 250m
-              memory: 2Gi
+              cpu: 500m
+              memory: 1500Mi
             limits:
-              cpu: 2000m
+              cpu: "2"
               memory: 4Gi
-          env:
+          extraEnv:
             - name: ALPINE_DATABASE_MODE
               value: external
             - name: ALPINE_DATABASE_URL
@@ -43,47 +42,14 @@ spec:
                 secretKeyRef:
                   name: dtrack-db-credentials
                   key: password
-          ingress:
-            enabled: true
-            ingressClassName: traefik
-            annotations:
-              traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-            hosts:
-              - host: dtrack.local
-                paths:
-                  - path: /api
-                    pathType: Prefix
-            tls:
-              - hosts:
-                  - dtrack.local
-                secretName: dtrack-tls
 
         frontend:
-          enabled: true
-          resources:
-            requests:
-              cpu: 10m
-              memory: 64Mi
-            limits:
-              cpu: 100m
-              memory: 128Mi
-          env:
+          extraEnv:
             - name: API_BASE_URL
               value: "https://dtrack.local"
-          ingress:
-            enabled: true
-            ingressClassName: traefik
-            annotations:
-              traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-            hosts:
-              - host: dtrack.local
-                paths:
-                  - path: /
-                    pathType: Prefix
-            tls:
-              - hosts:
-                  - dtrack.local
-                secretName: dtrack-tls
+
+        ingress:
+          enabled: false
 
   destination:
     server: https://kubernetes.default.svc
