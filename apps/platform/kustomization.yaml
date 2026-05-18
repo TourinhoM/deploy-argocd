@@ -3,4 +3,3 @@ kind: Kustomization
 resources:
   - infra-postgresql.yaml
   - infra-keycloak.yaml
-  - applicationsets/infra.yaml
