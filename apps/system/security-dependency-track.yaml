@@ -24,10 +24,8 @@ spec:
               memory: 1500Mi
             limits:
               cpu: "2"
-              memory: 5Gi
+              memory: 6Gi
           extraEnv:
-            - name: JAVA_TOOL_OPTIONS
-              value: "-Xmx4G"
             - name: ALPINE_DATABASE_MODE
               value: external
             - name: ALPINE_DATABASE_URL
