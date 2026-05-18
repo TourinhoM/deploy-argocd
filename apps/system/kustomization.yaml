@@ -10,4 +10,5 @@ resources:
   - security-trivy-operator.yaml
   - security-trivy-operator-config.yaml
   - security-dependency-track.yaml
+  - security-dependency-track-config.yaml
   - keycloak-operator.yaml
