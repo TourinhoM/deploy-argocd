@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: infra-ollama-dev
+  name: platform-app
   namespace: argocd
 spec:
-  project: platform
+  project: default
   source:
-    repoURL: https://github.com/TourinhoM/deploy-llm-runtime.git
+    repoURL: https://github.com/TourinhoM/deploy-argocd
     targetRevision: main
-    path: k8s/overlays/dev
+    path: apps/platform
   destination:
     server: https://kubernetes.default.svc
-    namespace: ai
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true

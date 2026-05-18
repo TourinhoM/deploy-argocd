@@ -1,35 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-# Plano:
-# - Manter apenas CRDs do Argo CD aqui (AppProject/Application/ApplicationSet)
-# - Cada Application deve apontar para um path em `envs/<ambiente>/...`
-
 resources:
-  - projects/platform.yaml
   - projects/system.yaml
   - projects/monitoring.yaml
-  - applications/argocd-self.yaml
-  - applications/argocd-config.yaml
-  - applications/external-secrets.yaml
-  - applications/external-secrets-config.yaml
-  - applications/security-cert-manager.yaml
-  - applications/security-cert-manager-config.yaml
-  - applications/security-trivy-operator.yaml
-  - applications/security-trivy-operator-config.yaml
-  - applications/keycloak-operator.yaml
-  - applications/infra-postgresql.yaml
-  - applications/security-dependency-track.yaml
-  - applications/infra-keycloak.yaml
-  - applications/infra-ollama.yaml
-  - applications/monitoring-config.yaml
-  - applications/monitoring.yaml
-  - applications/monitoring-loki.yaml
-  - applications/monitoring-alloy.yaml
-  - applications/monitoring-loki-config.yaml
-  - applications/monitoring-tempo.yaml
-  - applications/monitoring-tempo-config.yaml
-  - applications/monitoring-dashboards.yaml
-  - applications/monitoring-alerts.yaml
-  - applications/monitoring-tls.yaml
-
+  - projects/platform.yaml
+  - system-app.yaml
+  - monitoring-app.yaml
+  - platform-app.yaml
