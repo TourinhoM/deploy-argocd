@@ -44,9 +44,7 @@ spec:
                   key: password
 
         frontend:
-          extraEnv:
-            - name: API_BASE_URL
-              value: "https://dtrack.local"
+          apiBaseUrl: "https://dtrack.local"
 
         ingress:
           enabled: false
