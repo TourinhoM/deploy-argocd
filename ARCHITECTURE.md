@@ -38,10 +38,9 @@ reconciliado pela Application `argocd-self` — mudanças em patches,
 versão upstream do Argo CD, ou config do controller chegam ao cluster
 por PR no Git, não por `kubectl`.
 
-Os 2 segredos sensíveis (`bitwarden-access-token`,
-`bitwarden-tls-certs`) **não** moram no Git e precisam ser criados
-manualmente antes do ESO virar Ready. `scripts/onboarding.sh` automatiza
-o passo-a-passo idempotente.
+O único segredo que **não** mora no Git é o `vault-unseal-key` (criado
+por `scripts/bootstrap-vault.sh` no primeiro boot). Após isso, o Vault
+auto-unsela em restarts via postStart hook e todo o restante é GitOps puro.
 
 ---
 
@@ -127,37 +126,40 @@ Keycloak via `additionalOptions[tracing-endpoint]` no `Keycloak` CR
 
 ---
 
-## External Secrets — Bitwarden Secrets Manager
+## External Secrets — HashiCorp Vault
 
 ```mermaid
 flowchart LR
-    BW[("Bitwarden Secrets Manager<br/>(SaaS)")]
-
     subgraph cluster[Cluster k3s]
-        SDK["bitwarden-sdk-server<br/>(sidecar HTTPS)"]
-        ESO[external-secrets controller]
-        CSS[ClusterSecretStore<br/>bitwarden-homelab]
-        ES[ExternalSecret<br/>per-app]
-        K8sSecret[Secret k8s<br/>materializado]
+        subgraph ns-vault[ns: vault]
+            Vault["HashiCorp Vault\n(StatefulSet)"]
+        end
 
-        ES --> CSS
-        CSS -- "consulta" --> SDK
-        SDK -- "API REST + access token" --> BW
+        subgraph ns-eso[ns: external-secrets]
+            ESO[external-secrets controller]
+            CSS[ClusterSecretStore\nvault-homelab]
+        end
+
+        ES["ExternalSecret\nper-app"]
+        K8sSecret["Secret k8s\nmaterializado"]
+
         ESO -- "reconcilia" --> ES
+        ES --> CSS
+        CSS -- "Kubernetes auth\n(role: eso)" --> Vault
         ES --> K8sSecret
     end
 
-    Op[Operador] -- "1x no bootstrap" --> Token["Secret bitwarden-access-token<br/>(machine account token)"]
-    Op -- "1x no bootstrap" --> TLS["Secret bitwarden-tls-certs<br/>(self-signed pro sidecar SDK)"]
-    CSS -. "auth.secretRef" .-> Token
-    CSS -. "caProvider" .-> TLS
+    Op[Operador] -- "1x no bootstrap\nscripts/bootstrap-vault.sh" --> UnsealKey["Secret vault-unseal-key\n(postStart hook)"]
+    Op -- "interativo no bootstrap" --> Secrets["secret/cluster/*\n(grafana, argocd, postgresql\nkeycloak, dtrack)"]
+    UnsealKey -. "auto-unseal em restarts" .-> Vault
+    Secrets -. "fonte de verdade" .-> Vault
 ```
 
-Os 2 Secrets em laranja-escuro (`bitwarden-access-token`,
-`bitwarden-tls-certs`) **não** podem ficar no Git (token vazaria;
-cert é gerado por host). São criados pelo `scripts/onboarding.sh` antes
-do ClusterSecretStore virar Ready. A partir daí, qualquer
-ExternalSecret novo (em outro repo GitOps) é GitOps puro.
+O único artefato fora do Git é o `vault-unseal-key` — necessário para o
+postStart hook auto-unselar o Vault em reinicializações do pod. Os secrets
+de aplicação (`secret/cluster/*`) também vivem só no Vault; o
+`bootstrap-vault.sh` os coleta interativamente no primeiro boot e os
+escreve diretamente via `vault kv put`.
 
 ---
 
@@ -200,24 +202,27 @@ seus próprios manifests pode reiniciar o controller no meio do sync.
 Mitigação: `selfHeal: true` + manifests pinados por SHA do release
 upstream (`argo-cd/v2.11.7/manifests/install.yaml`).
 
-### External Secrets + Bitwarden Secrets Manager
+### External Secrets + HashiCorp Vault
 
-**Escolha:** ESO + ClusterSecretStore apontando pra Bitwarden Secrets
-Manager (SaaS). Vault externo é a fonte de verdade; cluster materializa
-Secrets sob demanda.
+**Escolha:** ESO + ClusterSecretStore apontando para HashiCorp Vault
+self-hosted (no próprio cluster). Vault é a fonte de verdade; o cluster
+materializa Secrets k8s sob demanda via Kubernetes auth.
 
 **Alternativa:** SealedSecrets (criptografar e commitar no Git) ou SOPS
 (criptografar com KMS/age e commitar).
 
-**Por quê:** vault externo não exige chave comitada nem cerimônia de
-re-encrypt no key rotation. Bitwarden free tier serve pro escopo
-homelab. Em produção, mudaria provider (AWS Secrets Manager,
-HashiCorp Vault) sem mudar arquitetura — `provider:` do
-ClusterSecretStore.
+**Por quê:** Vault self-hosted não depende de SaaS externo, suporta
+rotação de secrets sem re-encrypt de arquivos no Git, e o Kubernetes
+auth method elimina o chicken-and-egg de tokens estáticos — o ESO
+autentica com a própria ServiceAccount do cluster. Em produção, o mesmo
+ClusterSecretStore funcionaria sem mudança arquitetural trocando apenas
+o `server:` para uma instância externa.
 
-**Custo:** chicken-and-egg de bootstrap — `bitwarden-access-token` e
-TLS cert do sidecar SDK precisam existir antes do ESO funcionar, então
-não dá pra serem GitOps. `scripts/onboarding.sh` resolve idempotente.
+**Custo:** o único bootstrap manual é o `vault-unseal-key` (gerado pelo
+`scripts/bootstrap-vault.sh` no primeiro `vault operator init`). Os
+secrets de aplicação também precisam ser inseridos uma vez via script.
+Após isso, tudo é GitOps puro — novos ExternalSecrets em qualquer repo
+satélite funcionam sem intervenção manual.
 
 ### Memory limit do `argocd-application-controller`: 1Gi (default era 512Mi)
 
@@ -266,12 +271,12 @@ Helm que silenciosamente troca defaults.
 
 ### Hoje, dentro do escopo atual
 
-- **Bootstrap não-GitOps de 2 segredos.** `bitwarden-access-token` e
-  `bitwarden-tls-certs` precisam ser criados via `kubectl` antes do ESO
-  virar Ready — caso contrário, ClusterSecretStore não materializa
-  outros Secrets. `scripts/onboarding.sh` torna idempotente, mas
-  recriar o cluster exige rerodar o script (não é puro `kubectl apply
-  -k bootstrap/`).
+- **Bootstrap não-GitOps do `vault-unseal-key`.** O Secret
+  `vault-unseal-key` precisa ser criado via `scripts/bootstrap-vault.sh`
+  antes do postStart hook funcionar. Recriar o cluster exige rerodar o
+  script — não é puro `kubectl apply -k bootstrap/`. Os secrets de
+  aplicação (`secret/cluster/*`) também precisam ser re-inseridos
+  interativamente no Vault após um cluster wipe.
 - **ApplicationSet em `apps/applicationsets/infra.yaml` desabilitado.**
   `repoURL: CHANGE_ME_REPO_URL` é placeholder. Generator git/directories
   está pronto pra ativar (`envs/dev/infra/*` → 1 Application por dir),
