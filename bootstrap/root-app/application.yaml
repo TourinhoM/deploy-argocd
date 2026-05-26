@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/TourinhoM/deploy-argocd
+    repoURL: https://github.com/TourinhoM/platform-gitops
     targetRevision: main
     path: apps
   destination:
