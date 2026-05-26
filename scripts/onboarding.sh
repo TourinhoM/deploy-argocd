@@ -20,7 +20,7 @@ warn() { printf '\033[1;33m    %s\033[0m\n' "$*"; }
 
 # ---------- 1. Argo CD ----------
 step "1/5 Instalando Argo CD"
-$KUBECTL apply -k "$REPO_ROOT/bootstrap/argocd"
+$KUBECTL apply -k "$REPO_ROOT/bootstrap/argocd" --server-side --force-conflicts
 
 # ---------- 2. Espera argocd-server ----------
 step "2/5 Aguardando argocd-server ficar Ready"
