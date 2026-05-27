@@ -6,7 +6,7 @@
 #   4. Unseal
 #   5. Cria Secret vault-bootstrap-token e reinicia o Job de bootstrap
 #      (habilita KV v2, Kubernetes auth, policies eso-read e crossplane-write, roles)
-#   6. Cria todos os secrets de aplicação em secret/cluster/*
+#   6. Cria secrets de aplicação em secret/cluster/* (grafana, postgresql, keycloak, dtrack)
 #
 # Idempotente: detecta se o Vault já está inicializado e pula as etapas concluídas.
 #
@@ -79,11 +79,14 @@ else
   # Reinicia job caso já exista de uma execução anterior
   $KUBECTL delete job vault-bootstrap -n vault --ignore-not-found
 
+  # Aplica só os recursos necessários para o job (Certificate/Ingress são gerenciados pelo ArgoCD)
   if [[ -n "$PLATFORM_SECURITY_PATH" && -d "$PLATFORM_SECURITY_PATH/vault" ]]; then
-    $KUBECTL apply -k "$PLATFORM_SECURITY_PATH/vault"
+    $KUBECTL apply -f "$PLATFORM_SECURITY_PATH/vault/configmap-bootstrap.yaml"
+    $KUBECTL apply -f "$PLATFORM_SECURITY_PATH/vault/job-bootstrap.yaml"
   else
     warn "PLATFORM_SECURITY_PATH não encontrado. Aplique manualmente:"
-    warn "  kubectl apply -k <path>/platform-security/vault"
+    warn "  kubectl apply -f <path>/platform-security/vault/configmap-bootstrap.yaml"
+    warn "  kubectl apply -f <path>/platform-security/vault/job-bootstrap.yaml"
   fi
 
   info "Aguardando Job vault-bootstrap completar..."
@@ -124,20 +127,6 @@ read_multiline_secret() {
   VAL=$(cat)
   echo "$VAL"
 }
-
-# --- cluster/argocd ---
-info ""
-info "--- cluster/argocd (GitHub App do ArgoCD) ---"
-ARGOCD_APP_ID=$(read_secret "github_app_id")
-ARGOCD_INSTALL_ID=$(read_secret "github_app_installation_id")
-info "  Cole a chave privada PEM (ENTER + Ctrl-D para finalizar):"
-ARGOCD_PRIVATE_KEY=$(read_multiline_secret "github_app_private_key (PEM)")
-
-vault kv put secret/cluster/argocd \
-  github_app_id="$ARGOCD_APP_ID" \
-  github_app_installation_id="$ARGOCD_INSTALL_ID" \
-  github_app_private_key="$ARGOCD_PRIVATE_KEY"
-info "secret/cluster/argocd criado."
 
 # --- cluster/grafana ---
 info ""
