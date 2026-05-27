@@ -6,7 +6,7 @@
 #   4. Unseal
 #   5. Cria Secret vault-bootstrap-token e reinicia o Job de bootstrap
 #      (habilita KV v2, Kubernetes auth, policies eso-read e crossplane-write, roles)
-#   6. Cria secrets de aplicação em secret/cluster/* (grafana, postgresql, keycloak, dtrack)
+#   6. Gera senhas aleatórias e cria secrets em secret/cluster/*
 #
 # Idempotente: detecta se o Vault já está inicializado e pula as etapas concluídas.
 #
@@ -16,11 +16,9 @@ set -euo pipefail
 KUBECTL="${KUBECTL:-sudo k3s kubectl}"
 PLATFORM_SECURITY_PATH="${PLATFORM_SECURITY_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../platform-security" 2>/dev/null && pwd || echo "")}"
 
-step()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
-info()  { printf '    %s\n' "$*"; }
-warn()  { printf '\033[1;33m    WARN: %s\033[0m\n' "$*"; }
-ask()   { printf '    \033[1;33m%s\033[0m: ' "$*"; }
-askml() { printf '    \033[1;33m%s\033[0m (cole o valor, depois ENTER + Ctrl-D):\n' "$*"; }
+step() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
+info() { printf '    %s\n' "$*"; }
+warn() { printf '\033[1;33m    WARN: %s\033[0m\n' "$*"; }
 
 vexec() { $KUBECTL exec -n vault "$VAULT_POD" -- vault "$@"; }
 
@@ -98,14 +96,9 @@ fi
 
 # ---------- 6. Secrets de aplicação ----------
 step "6/6 Criando secrets de aplicação no Vault"
-info "Os valores serão lidos interativamente. A entrada não é ecoada."
+info "Gerando senhas aleatórias — acesse via 'vault kv get secret/cluster/<app>'"
 
-# Solicita root token se não veio do init
-if [[ -z "${VAULT_ROOT_TOKEN:-}" ]]; then
-  ask "Root token do Vault"
-  read -rs VAULT_ROOT_TOKEN
-  echo
-fi
+genpass() { openssl rand -base64 32 | tr -d '/+=' | head -c 32; }
 
 export VAULT_ADDR="http://localhost:8200"
 $KUBECTL port-forward -n vault svc/security-vault 8200:8200 &
@@ -115,62 +108,31 @@ sleep 2
 
 export VAULT_TOKEN="$VAULT_ROOT_TOKEN"
 
-read_secret() {
-  ask "$1"
-  read -rs VAL
-  echo
-  echo "$VAL"
-}
-
-read_multiline_secret() {
-  askml "$1"
-  VAL=$(cat)
-  echo "$VAL"
-}
-
-# --- cluster/grafana ---
-info ""
-info "--- cluster/grafana ---"
-GRAFANA_ADMIN_PW=$(read_secret "admin_password")
-GRAFANA_DB_PW=$(read_secret "db_password")
-
 vault kv put secret/cluster/grafana \
-  admin_password="$GRAFANA_ADMIN_PW" \
-  db_password="$GRAFANA_DB_PW"
+  admin_password="$(genpass)" \
+  db_password="$(genpass)"
 info "secret/cluster/grafana criado."
 
-# --- cluster/postgresql ---
-info ""
-info "--- cluster/postgresql ---"
-PG_SUPERUSER_PW=$(read_secret "superuser_password")
-
 vault kv put secret/cluster/postgresql \
-  superuser_password="$PG_SUPERUSER_PW"
+  superuser_password="$(genpass)"
 info "secret/cluster/postgresql criado."
 
-# --- cluster/keycloak ---
-info ""
-info "--- cluster/keycloak ---"
-KC_ADMIN_PW=$(read_secret "admin_password")
-
 vault kv put secret/cluster/keycloak \
-  admin_password="$KC_ADMIN_PW"
+  admin_password="$(genpass)"
 info "secret/cluster/keycloak criado."
 
-# --- cluster/dtrack ---
-info ""
-info "--- cluster/dtrack ---"
-DTRACK_DB_PW=$(read_secret "db_password")
-warn "O api_key do Dependency Track é gerado pela aplicação após o primeiro boot."
-warn "Execute depois: vault kv patch secret/cluster/dtrack api_key=<valor>"
-warn "Deixando api_key vazio por enquanto."
-
 vault kv put secret/cluster/dtrack \
-  db_password="$DTRACK_DB_PW" \
+  db_password="$(genpass)" \
   api_key=""
 info "secret/cluster/dtrack criado (api_key pendente)."
 
 step "Bootstrap do Vault concluído"
+info ""
+info "Para consultar qualquer senha:"
+info "  vault kv get secret/cluster/grafana"
+info "  vault kv get secret/cluster/postgresql"
+info "  vault kv get secret/cluster/keycloak"
+info "  vault kv get secret/cluster/dtrack"
 info ""
 info "Próximos passos:"
 info "  1. Após Dependency Track subir, recupere a API key e atualize:"
