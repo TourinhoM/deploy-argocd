@@ -53,7 +53,8 @@ else
   ROOT_TOKEN=$(echo "$INIT_JSON" | jq -r '.root_token')
 
   info "Vault inicializado."
-  warn "Guarde o root token em local seguro: $ROOT_TOKEN"
+  info "Root token guardado em vault-bootstrap-token. Para recuperar:"
+  info "  $KUBECTL get secret vault-bootstrap-token -n vault -o jsonpath='{.data.token}' | base64 -d"
 
   # ---------- 3. vault-unseal-key ----------
   step "3/6 Criando Secret vault-unseal-key"
@@ -95,47 +96,17 @@ else
 fi
 
 # ---------- 6. Secrets de aplicação ----------
-step "6/6 Criando secrets de aplicação no Vault"
-info "Gerando senhas aleatórias — acesse via 'vault kv get secret/cluster/<app>'"
-
-genpass() { openssl rand -base64 32 | tr -d '/+=' | head -c 32; }
-
-export VAULT_ADDR="http://localhost:8200"
-$KUBECTL port-forward -n vault svc/security-vault 8200:8200 &
-PF_PID=$!
-trap 'kill $PF_PID 2>/dev/null || true' EXIT
-sleep 2
-
-export VAULT_TOKEN="$VAULT_ROOT_TOKEN"
-
-vault kv put secret/cluster/grafana \
-  admin_password="$(genpass)" \
-  db_password="$(genpass)"
-info "secret/cluster/grafana criado."
-
-vault kv put secret/cluster/postgresql \
-  superuser_password="$(genpass)"
-info "secret/cluster/postgresql criado."
-
-vault kv put secret/cluster/keycloak \
-  admin_password="$(genpass)"
-info "secret/cluster/keycloak criado."
-
-vault kv put secret/cluster/dtrack \
-  db_password="$(genpass)" \
-  api_key=""
-info "secret/cluster/dtrack criado (api_key pendente)."
+step "6/6 Secrets de aplicação"
+info "Gerados pelo bootstrap job — consulte via:"
+info "  $KUBECTL exec -n vault $VAULT_POD -- vault kv get secret/cluster/grafana"
+info "  $KUBECTL exec -n vault $VAULT_POD -- vault kv get secret/cluster/postgresql"
+info "  $KUBECTL exec -n vault $VAULT_POD -- vault kv get secret/cluster/keycloak"
+info "  $KUBECTL exec -n vault $VAULT_POD -- vault kv get secret/cluster/dtrack"
 
 step "Bootstrap do Vault concluído"
 info ""
-info "Para consultar qualquer senha:"
-info "  vault kv get secret/cluster/grafana"
-info "  vault kv get secret/cluster/postgresql"
-info "  vault kv get secret/cluster/keycloak"
-info "  vault kv get secret/cluster/dtrack"
-info ""
 info "Próximos passos:"
 info "  1. Após Dependency Track subir, recupere a API key e atualize:"
-info "       vault kv patch secret/cluster/dtrack api_key=<valor>"
+info "       $KUBECTL exec -n vault $VAULT_POD -- vault kv patch secret/cluster/dtrack api_key=<valor>"
 info "  2. Force-sync dos ExternalSecrets:"
-info "       kubectl annotate es --all -A force-sync=\$(date +%s) --overwrite"
+info "       $KUBECTL annotate es --all -A force-sync=\$(date +%s) --overwrite"
